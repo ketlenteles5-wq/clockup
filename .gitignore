@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# env (mantemos .env.example versionado)
+.env
+.env.*
+!.env.example
+
+# backend zip extraído
+Back.zip
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
