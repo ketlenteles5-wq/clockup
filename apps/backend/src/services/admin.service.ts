@@ -60,6 +60,26 @@ function businessDaysElapsedInMonth(year: number, month0: number, today: Date): 
   return count;
 }
 
+// Conta dias úteis em [max(primeiroDoMes, dataAdmissao), today].
+// Funcionário cadastrado depois do dia 1 não é cobrado pelos dias anteriores ao vínculo.
+function businessDaysExpected(year: number, month0: number, today: Date, dataAdmissao: Date): number {
+  const primeiroDoMes = new Date(year, month0, 1);
+  const admissao = new Date(dataAdmissao);
+  admissao.setHours(0, 0, 0, 0);
+  const inicio = admissao > primeiroDoMes ? admissao : primeiroDoMes;
+  const ultimoDoMes = new Date(year, month0 + 1, 0);
+  const fim = today < ultimoDoMes ? today : ultimoDoMes;
+  if (inicio > fim) return 0;
+  let count = 0;
+  const cursor = new Date(inicio);
+  while (cursor <= fim) {
+    const dow = cursor.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return count;
+}
+
 interface DayGroup {
   data: string; // "Seg, 14 Abr"
   dataISO: string; // "2026-04-14"
@@ -218,7 +238,7 @@ export class AdminService {
     );
     const diasMes = groupRegistrosByDay(registrosMes, today);
     const minutosTrabalhadosMes = diasMes.reduce((acc, d) => acc + d.minutos, 0);
-    const diasUteisDecorridos = businessDaysElapsedInMonth(year, month - 1, today);
+    const diasUteisDecorridos = businessDaysExpected(year, month - 1, today, funcionario.data_admissao);
     const minutosEsperadosMes = diasUteisDecorridos * EXPECTED_MINUTES_PER_BUSINESS_DAY;
     const bancoMinutos = minutosTrabalhadosMes - minutosEsperadosMes;
     const diasComRegistro = diasMes.length;

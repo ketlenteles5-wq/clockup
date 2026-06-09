@@ -38,13 +38,22 @@ function formatBanco(min: number): string {
   return `${sign}${Math.floor(Math.abs(min) / 60)}h`;
 }
 
-function diasUteisDecorridosNoMes(hoje: Date): number {
+function diasUteisDecorridosNoMes(hoje: Date, dataAdmissao: Date | null): number {
   const ano = hoje.getFullYear();
   const mes = hoje.getMonth();
+  const primeiroDoMes = new Date(ano, mes, 1);
+  let inicio = primeiroDoMes;
+  if (dataAdmissao && dataAdmissao > primeiroDoMes) {
+    inicio = new Date(dataAdmissao);
+    inicio.setHours(0, 0, 0, 0);
+  }
+  if (inicio > hoje) return 0;
   let count = 0;
-  for (let d = 1; d <= hoje.getDate(); d++) {
-    const dow = new Date(ano, mes, d).getDay();
+  const cursor = new Date(inicio);
+  while (cursor <= hoje) {
+    const dow = cursor.getDay();
     if (dow !== 0 && dow !== 6) count++;
+    cursor.setDate(cursor.getDate() + 1);
   }
   return count;
 }
@@ -58,6 +67,19 @@ function readNomeFuncionario(): string {
     return partes[0] || "Funcionário";
   } catch {
     return "Funcionário";
+  }
+}
+
+function readDataAdmissao(): Date | null {
+  const raw = localStorage.getItem("clockup.user");
+  if (!raw) return null;
+  try {
+    const u = JSON.parse(raw);
+    if (!u.dataAdmissao) return null;
+    const d = new Date(u.dataAdmissao);
+    return isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
   }
 }
 
@@ -87,7 +109,7 @@ export default function Home() {
           (acc, d) => acc + parseHoras(d.horasTrabalhadas),
           0,
         );
-        const esperados = diasUteisDecorridosNoMes(new Date()) * MIN_DIA;
+        const esperados = diasUteisDecorridosNoMes(new Date(), readDataAdmissao()) * MIN_DIA;
         const banco = minutosTrabalhados - esperados;
         const comRegistro = dias.length;
         const completos = dias.filter((d) => d.status === "completo").length;

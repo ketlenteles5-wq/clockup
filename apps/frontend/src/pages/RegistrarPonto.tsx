@@ -4,8 +4,18 @@ import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import BottomNav from "../components/BottomNav";
+import ConfirmarPontoDialog from "../components/ConfirmarPontoDialog";
 import { api, ApiError } from "../lib/api";
 import type { Registro } from "../types";
+
+interface PendingRegistro {
+  tipo: Registro["tipo"];
+  tipoLabel: string;
+  modalidade: Registro["modalidade"];
+  horario: string;
+  latitude: number;
+  longitude: number;
+}
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -92,6 +102,7 @@ export default function RegistrarPonto() {
   const [registrando, setRegistrando] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [erro, setErro] = useState("");
+  const [pendente, setPendente] = useState<PendingRegistro | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => setHoraAtual(new Date()), 1000);
@@ -148,19 +159,38 @@ export default function RegistrarPonto() {
 
   const diaSemana = horaAtual.toLocaleDateString("pt-BR", { weekday: "long" });
 
-  const registrar = async () => {
+  const abrirConfirmacao = () => {
     if (!posicao || registrando) return;
-    setRegistrando(true);
-    setErro("");
     const tipoEfetivo = proximoTipo;
     const modalidadeEfetiva = modalidadeParaTipo(modalidade, tipoEfetivo);
+    setErro("");
+    setPendente({
+      tipo: tipoEfetivo,
+      tipoLabel: getTipoLabel(tipoEfetivo),
+      modalidade: modalidadeEfetiva,
+      horario: formatHora(new Date()),
+      latitude: posicao[0],
+      longitude: posicao[1],
+    });
+  };
+
+  const cancelarConfirmacao = () => {
+    if (registrando) return;
+    setPendente(null);
+  };
+
+  const confirmarRegistro = async () => {
+    if (!pendente || registrando) return;
+    setRegistrando(true);
+    setErro("");
     try {
       await api.post("/funcionario/ponto/registrar", {
-        tipo: tipoEfetivo,
-        modalidade: modalidadeEfetiva,
-        latitude: posicao[0],
-        longitude: posicao[1],
+        tipo: pendente.tipo,
+        modalidade: pendente.modalidade,
+        latitude: pendente.latitude,
+        longitude: pendente.longitude,
       });
+      setPendente(null);
       setShowModal(true);
       await carregarDia();
     } catch (e) {
@@ -169,6 +199,7 @@ export default function RegistrarPonto() {
           ? e.message
           : "Não foi possível registrar o ponto.",
       );
+      setPendente(null);
     } finally {
       setRegistrando(false);
     }
@@ -251,9 +282,9 @@ export default function RegistrarPonto() {
 
         <div className="px-5 pb-5">
           <button
-            onClick={registrar}
-            disabled={!posicao || registrando}
-            className="w-full bg-[#1B2A5E] text-white font-bold py-4 rounded-2xl tracking-widest text-sm active:scale-95 transition-transform disabled:opacity-60"
+            onClick={abrirConfirmacao}
+            disabled={!posicao || registrando || !!pendente}
+            className="w-full bg-[#1B2A5E] text-white font-bold py-4 rounded-2xl tracking-widest text-sm active:scale-95 transition-transform motion-reduce:transition-none disabled:opacity-60"
           >
             {registrando
               ? "REGISTRANDO..."
@@ -339,6 +370,16 @@ export default function RegistrarPonto() {
           </div>
         </div>
       </div>
+
+      <ConfirmarPontoDialog
+        open={!!pendente}
+        tipoLabel={pendente?.tipoLabel ?? ""}
+        horario={pendente?.horario ?? ""}
+        modalidade={pendente?.modalidade ?? ""}
+        carregando={registrando}
+        onCancel={cancelarConfirmacao}
+        onConfirm={confirmarRegistro}
+      />
 
       {showModal && (
         <div

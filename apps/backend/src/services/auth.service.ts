@@ -33,6 +33,7 @@ export class AuthService {
         nome: funcionario.nome,
         cpf: funcionario.cpf,
         cargo: funcionario.cargo,
+        dataAdmissao: funcionario.data_admissao,
         role: 'EMPLOYEE' as UserRole,
       },
     };

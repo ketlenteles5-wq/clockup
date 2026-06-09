@@ -6,6 +6,21 @@ const OFFICIAL_LAT = -26.9195;
 const OFFICIAL_LNG = -49.0661;
 const VIRTUAL_FENCE_RADIUS_METERS = 100;
 
+// Intervalo mínimo entre dois pontos consecutivos do mesmo dia (minutos)
+const INTERVALO_MINIMO_MINUTOS = 1;
+
+const TIPO_LABEL: Record<PontoTipo, string> = {
+  entrada: 'Entrada',
+  saida_intervalo: 'Saída para intervalo',
+  retorno_intervalo: 'Retorno do intervalo',
+  saida: 'Saída',
+};
+
+function hhmmToMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
 export class PontoService {
   private pontoRepo = new PontoRepository();
 
@@ -57,6 +72,30 @@ export class PontoService {
     const mes = String(now.getMonth() + 1).padStart(2, '0');
     const dia = String(now.getDate()).padStart(2, '0');
     const dataIsoString = `${ano}-${mes}-${dia}`;
+
+    // 3.5. Regras de integridade do dia
+    const existentesDoDia = await this.pontoRepo.findByFuncionarioIdAndDate(
+      data.funcionario_id,
+      dataIsoString,
+    );
+
+    // Regra B: cada tipo pode ser batido uma única vez por dia.
+    if (existentesDoDia.some((r) => r.tipo === data.tipo)) {
+      throw new Error(
+        `Você já registrou "${TIPO_LABEL[data.tipo]}" hoje. Cada tipo de ponto pode ser batido apenas uma vez por dia.`
+      );
+    }
+
+    // Regra C: intervalo mínimo entre dois registros consecutivos do dia.
+    if (existentesDoDia.length > 0) {
+      const ultimo = existentesDoDia[existentesDoDia.length - 1]!;
+      const diff = hhmmToMinutes(horarioString) - hhmmToMinutes(ultimo.horario);
+      if (diff < INTERVALO_MINIMO_MINUTOS) {
+        throw new Error(
+          `Aguarde pelo menos ${INTERVALO_MINIMO_MINUTOS} minuto entre dois registros de ponto. Último registro: ${ultimo.horario} (${TIPO_LABEL[ultimo.tipo]}).`
+        );
+      }
+    }
 
     // 4. Salvar registro no repositório
     const registro = await this.pontoRepo.create({

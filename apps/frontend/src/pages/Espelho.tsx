@@ -76,6 +76,46 @@ function diasUteisDoMes(ano: number, mes0: number): number {
   return c;
 }
 
+// Dias úteis "esperados até agora" no mês selecionado, respeitando admissão.
+// Cutoff: [max(primeiroDoMes, dataAdmissao), min(hoje, ultimoDoMes)]
+function diasUteisEsperadosAteAgora(
+  ano: number,
+  mes0: number,
+  hoje: Date,
+  dataAdmissao: Date | null,
+): number {
+  const primeiroDoMes = new Date(ano, mes0, 1);
+  const ultimoDoMes = new Date(ano, mes0 + 1, 0);
+  let inicio = primeiroDoMes;
+  if (dataAdmissao && dataAdmissao > primeiroDoMes) {
+    inicio = new Date(dataAdmissao);
+    inicio.setHours(0, 0, 0, 0);
+  }
+  const fim = hoje < ultimoDoMes ? hoje : ultimoDoMes;
+  if (inicio > fim) return 0;
+  let c = 0;
+  const cursor = new Date(inicio);
+  while (cursor <= fim) {
+    const dow = cursor.getDay();
+    if (dow !== 0 && dow !== 6) c++;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return c;
+}
+
+function readDataAdmissao(): Date | null {
+  const raw = localStorage.getItem("clockup.user");
+  if (!raw) return null;
+  try {
+    const u = JSON.parse(raw);
+    if (!u.dataAdmissao) return null;
+    const d = new Date(u.dataAdmissao);
+    return isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
+  }
+}
+
 function isoFromDataLabel(label: string, ano: number): string | null {
   // "Seg, 14 Abr" → "2026-04-14"
   const m = label.match(/(\d{1,2})\s+([A-Za-z]+)$/);
@@ -140,7 +180,12 @@ export default function Espelho() {
     () => diasUteisDoMes(anoAtual, mesAtual) * 480,
     [anoAtual, mesAtual],
   );
-  const bancoMin = trabalhadasMin - previstoMin;
+  const dataAdmissao = useMemo(() => readDataAdmissao(), []);
+  const bancoEsperadoMin = useMemo(
+    () => diasUteisEsperadosAteAgora(anoAtual, mesAtual, hoje, dataAdmissao) * 480,
+    [anoAtual, mesAtual, hoje, dataAdmissao],
+  );
+  const bancoMin = trabalhadasMin - bancoEsperadoMin;
   const completos = dias.filter((d) => d.status === "completo").length;
   const pontualidade = dias.length
     ? Math.round((completos / dias.length) * 100)
