@@ -61,13 +61,19 @@ export class ContestacaoRepository {
     return result.rows;
   }
 
-  async updateStatus(id: string, status: string, motivoRecusa?: string): Promise<Contestacao | null> {
+  async updateStatus(
+    id: string,
+    empresaId: string,
+    status: string,
+    motivoRecusa?: string,
+  ): Promise<Contestacao | null> {
     const result = await pool.query(
       `UPDATE contestacoes
        SET status = $1, motivo_recusa = $2
        WHERE id = $3
+         AND funcionario_id IN (SELECT id FROM funcionarios WHERE empresa_id = $4)
        RETURNING *`,
-      [status, motivoRecusa || null, id]
+      [status, motivoRecusa || null, id, empresaId]
     );
     return result.rows[0] || null;
   }

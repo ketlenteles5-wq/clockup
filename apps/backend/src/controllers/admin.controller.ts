@@ -117,7 +117,7 @@ export class AdminController {
       const { id } = req.params;
       const { status } = req.body;
 
-      const result = await this.adminService.atualizarStatusFerias(id as string, status as string);
+      const result = await this.adminService.atualizarStatusFerias(req.user.id, id as string, status as string);
 
       res.status(200).json(result);
     } catch (error: any) {
@@ -153,6 +153,7 @@ export class AdminController {
       const { status, motivoReprovacao, motivo_reprovacao } = req.body;
 
       const result = await this.adminService.atualizarStatusAtestado(
+        req.user.id,
         id as string,
         status as string,
         (motivoReprovacao || motivo_reprovacao) as string | undefined
@@ -192,6 +193,7 @@ export class AdminController {
       const { status, motivoRecusa, motivo_recusa } = req.body;
 
       const result = await this.adminService.atualizarStatusContestacao(
+        req.user.id,
         id as string,
         status as string,
         (motivoRecusa || motivo_recusa) as string | undefined

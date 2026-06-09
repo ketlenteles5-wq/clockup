@@ -340,13 +340,13 @@ export class AdminService {
     }));
   }
 
-  async atualizarStatusFerias(id: string, status: string) {
+  async atualizarStatusFerias(empresaId: string, id: string, status: string) {
     const statusPermitidos = ['Aprovado', 'Reprovado', 'Pendente'];
     if (!statusPermitidos.includes(status)) {
       throw new Error(`Status inválido. Escolha entre: ${statusPermitidos.join(', ')}`);
     }
 
-    const updated = await this.feriasRepo.updateStatus(id, status);
+    const updated = await this.feriasRepo.updateStatus(id, empresaId, status);
     if (!updated) {
       throw new Error('Solicitação de férias não encontrada.');
     }
@@ -383,7 +383,7 @@ export class AdminService {
     });
   }
 
-  async atualizarStatusAtestado(id: string, status: string, motivoReprovacao?: string) {
+  async atualizarStatusAtestado(empresaId: string, id: string, status: string, motivoReprovacao?: string) {
     const statusPermitidos = ['Aprovado', 'Reprovado', 'Pendente'];
     if (!statusPermitidos.includes(status)) {
       throw new Error(`Status inválido. Escolha entre: ${statusPermitidos.join(', ')}`);
@@ -393,7 +393,7 @@ export class AdminService {
       throw new Error('O motivo da reprovação é obrigatório ao reprovar um atestado.');
     }
 
-    const updated = await this.atestadoRepo.updateStatus(id, status, motivoReprovacao);
+    const updated = await this.atestadoRepo.updateStatus(id, empresaId, status, motivoReprovacao);
     if (!updated) {
       throw new Error('Atestado médico não encontrado.');
     }
@@ -434,7 +434,7 @@ export class AdminService {
     });
   }
 
-  async atualizarStatusContestacao(id: string, status: string, motivoRecusa?: string) {
+  async atualizarStatusContestacao(empresaId: string, id: string, status: string, motivoRecusa?: string) {
     const statusPermitidos = ['Aceita', 'Recusada', 'Pendente'];
     if (!statusPermitidos.includes(status)) {
       throw new Error(`Status inválido. Escolha entre: ${statusPermitidos.join(', ')}`);
@@ -444,7 +444,7 @@ export class AdminService {
       throw new Error('O motivo da recusa é obrigatório ao recusar uma contestação.');
     }
 
-    const updated = await this.contestacaoRepo.updateStatus(id, status, motivoRecusa);
+    const updated = await this.contestacaoRepo.updateStatus(id, empresaId, status, motivoRecusa);
     if (!updated) {
       throw new Error('Contestação não encontrada.');
     }

@@ -59,13 +59,19 @@ export class AtestadoRepository {
     return result.rows;
   }
 
-  async updateStatus(id: string, status: string, motivoReprovacao?: string): Promise<Atestado | null> {
+  async updateStatus(
+    id: string,
+    empresaId: string,
+    status: string,
+    motivoReprovacao?: string,
+  ): Promise<Atestado | null> {
     const result = await pool.query(
       `UPDATE atestados
        SET status = $1, motivo_reprovacao = $2
        WHERE id = $3
+         AND funcionario_id IN (SELECT id FROM funcionarios WHERE empresa_id = $4)
        RETURNING *`,
-      [status, motivoReprovacao || null, id]
+      [status, motivoReprovacao || null, id, empresaId]
     );
     return result.rows[0] || null;
   }

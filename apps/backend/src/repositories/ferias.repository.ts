@@ -79,13 +79,18 @@ export class FeriasRepository {
     return result.rows[0] || null;
   }
 
-  async updateStatus(id: string, status: string): Promise<SolicitacaoFerias | null> {
+  async updateStatus(
+    id: string,
+    empresaId: string,
+    status: string,
+  ): Promise<SolicitacaoFerias | null> {
     const result = await pool.query(
       `UPDATE solicitacoes_ferias
        SET status = $1
        WHERE id = $2
+         AND funcionario_id IN (SELECT id FROM funcionarios WHERE empresa_id = $3)
        RETURNING *`,
-      [status, id]
+      [status, id, empresaId]
     );
     return result.rows[0] || null;
   }
